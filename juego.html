@@ -102,7 +102,7 @@
     listaBalas[bala.id] = bala;
   }
 
-  crearBalaAleatoria = function(entidad,angulo_reemplazo){
+  generarBala = function(entidad,angulo_reemplazo){
     var id = Math.random(); // NO ME CONVENCE, SI SALE UN NÚMERO ALEATORIO QUE YA FUE INGRESADO, SE SOBREESCRIBIRÁ EL ENEMIGO
     var nombre = id;
     var x = entidad.x;
@@ -320,10 +320,35 @@
   disparar = function(entidad){
     //console.log(jugador.tiempo_entre_balas);
     if(entidad.tiempo_entre_balas > 25/entidad.vel_disparo){ // Empieza disparando cada segundo (porque vel_disparo=1), pero con cada mejora se hace más frecuente
-      crearBalaAleatoria(entidad); // Se dispara una bala
+      generarBala(entidad); // Se dispara una bala
       entidad.tiempo_entre_balas = 0;
     }
   }
+
+  disparar_especial = function(entidad){
+    if(entidad.tiempo_entre_balas > 50){ // Si no dispara por 2 segundos
+      /*
+      generarBala(jugador,0); // Derecha
+      generarBala(jugador,Math.PI/4); // Diagonal superior derecha
+      generarBala(jugador,Math.PI/2); // Arriba
+      generarBala(jugador,3*Math.PI/4); // Diagonal superior izquierda
+      generarBala(jugador,Math.PI); // Izquierda
+      generarBala(jugador,-3*Math.PI/4); // Diagonal inferior izquierda
+      generarBala(jugador,-Math.PI/2); // Abajo
+      generarBala(jugador,-Math.PI/4); // Diagonal inferior derecha
+      */
+      for(var angle = -3*Math.PI/4; angle <= Math.PI; angle += Math.PI/4 ){ // Dispara balas en 8 direcciones, desde -3*pi/4 hasta pi
+        generarBala(entidad,angle);
+      }
+      entidad.tiempo_entre_balas = 0;
+    }
+  }
+
+  /// MOUSE
+  // ALGO MUY INTERESANTE:
+  /// - FUNCIONA PERFECTO CON MOUSE USB
+  /// - NO SE PUEDE MOVER Y DISPARAR USANDO EL MOUSEPAD
+  /// - USAR MOUSEPAD Y MOUSE USB AL MISMO TIEMPO PUEDE CAUSAR QUE DISPARE AUTOMÁTICAMENTE, REINICIAR EL JUEGO LO ARREGLA
 
   // Presionar botón mouse
   document.onmousedown = function(){
@@ -369,22 +394,7 @@
 
   // Hacer click derecho
   document.oncontextmenu = function(event){ // event es más común, pero es lo mismo que mouse
-    if(jugador.tiempo_entre_balas > 50){ // Si no dispara por 2 segundos
-      /*
-      crearBalaAleatoria(jugador,0); // Derecha
-      crearBalaAleatoria(jugador,Math.PI/4); // Diagonal superior derecha
-      crearBalaAleatoria(jugador,Math.PI/2); // Arriba
-      crearBalaAleatoria(jugador,3*Math.PI/4); // Diagonal superior izquierda
-      crearBalaAleatoria(jugador,Math.PI); // Izquierda
-      crearBalaAleatoria(jugador,-3*Math.PI/4); // Diagonal inferior izquierda
-      crearBalaAleatoria(jugador,-Math.PI/2); // Abajo
-      crearBalaAleatoria(jugador,-Math.PI/4); // Diagonal inferior derecha
-      */
-      for(var angle = -3*Math.PI/4; angle <= Math.PI; angle += Math.PI/4 ){ // Dispara balas en 8 direcciones, desde -3*pi/4 hasta pi
-        crearBalaAleatoria(jugador,angle);
-      }
-      jugador.tiempo_entre_balas = 0;
-    }
+    disparar_especial(jugador);
     event.preventDefault();
   }
 
