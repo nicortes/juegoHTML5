@@ -1,0 +1,458 @@
+<canvas id="myCanvas" width="500" height="500" style="border: 1px solid #000000"></canvas>
+
+<script>
+
+  /// FUNCIONES (si no es una variable, no importa dónde se definan)
+
+  // Retorna true si la distancia entre dos entidades es menor a cierto valor
+  function isColliding(entity1,entity2){
+    var distancia = getDistanceBetweenEntities(entity1,entity2);
+    return distancia < 30;
+  }
+
+  function areRectanglesColliding(rect1,rect2){
+    // Centramos el origen del rectángulo
+    var x1 = rect1.x - rect1.ancho/2;
+    var y1 = rect1.y - rect1.alto/2;
+    var x2 = rect2.x - rect2.ancho/2;
+    var y2 = rect2.y - rect2.alto/2;
+    return x1 <= x2 + rect2.ancho
+    && y1 <= y2 + rect2.alto
+    && x2 <= x1 + rect1.ancho
+    && y2 <= y1 + rect1.alto
+  }
+
+  // Retorna la distancia entre dos entidades
+  function getDistanceBetweenEntities(entity1,entity2){
+    var dif_x = entity1.x - entity2.x;
+    var dif_y = entity1.y - entity2.y;
+    return Math.sqrt(dif_x*dif_x + dif_y*dif_y);
+  }
+
+  // Crea el objeto enemigo y lo agrega a la lista
+  crearEnemigo = function (id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2,color2){
+    var enemigo = {
+      id: id2,
+      nombre: nombre2,
+      x: x2,
+      y: y2,
+      velx: velx2,
+      vely: vely2,
+      ancho: ancho2,
+      alto: alto2,
+      color: color2
+    };
+    listaEnemigos[enemigo.id] = enemigo;
+  }
+
+  crearMejora = function (id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2,color2,tipo2){
+    var mejora = {
+      id: id2,
+      nombre: nombre2,
+      x: x2,
+      y: y2,
+      velx: velx2,
+      vely: vely2,
+      ancho: ancho2,
+      alto: alto2,
+      color: color2,
+      tipo: tipo2
+    };
+    listaMejoras[mejora.id] = mejora;
+  }
+
+  crearMejoraAleatoria = function(){
+    var id = Math.random(); // NO ME CONVENCE, SI SALE UN NÚMERO ALEATORIO QUE YA FUE INGRESADO, SE SOBREESCRIBIRÁ EL ENEMIGO
+    var nombre = id;
+    var x = Math.random() * ancho_lienzo; //Math.random retorna un número entre 0 y 1
+    var y = Math.random() * alto_lienzo; //Math.random retorna un número entre 0 y 1
+    var alto = 10; // Las mejoras miden 10 de alto
+    var ancho = 10; // Las mejoras miden 10 de ancho
+    var velx = 0; // Las mejoras no se mueven
+    var vely = 0; // Las mejoras no se mueven
+    var color;
+    var tipo;
+    if(Math.random() < 0.7){ // 70% de probabilidad de que aumente el puntaje
+      color = '#FF8000'; // Las mejoras de puntaje son de color naranjo
+      tipo = 'puntos';
+    }else{
+      color = '#BF00FF'; // las mejoras de bala son de color lila
+      tipo = 'bala'
+    }
+
+    crearMejora(id,nombre,x,y,velx,vely,ancho,alto,color,tipo);
+  }
+
+  crearBala = function (id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2){
+    var bala = {
+      id: id2,
+      nombre: nombre2,
+      x: x2,
+      y: y2,
+      velx: velx2,
+      vely: vely2,
+      ancho: ancho2,
+      alto: alto2,
+      color: '#000000', // Las balas son de color negro
+      tiempo_de_vida: 0
+    };
+    listaBalas[bala.id] = bala;
+  }
+
+  crearBalaAleatoria = function(entidad,reemplazarAngulo){
+    var id = Math.random(); // NO ME CONVENCE, SI SALE UN NÚMERO ALEATORIO QUE YA FUE INGRESADO, SE SOBREESCRIBIRÁ EL ENEMIGO
+    var nombre = id;
+    var x = entidad.x;
+    var y = entidad.y;
+    var alto = 5;
+    var ancho = 5;
+    var angulo = entidad.anguloDisparo; // Se dispara en la dirección del mouse
+    if(reemplazarAngulo !== undefined){ // Si se especifica un nuevo ángulo, se usa ese
+      angulo = reemplazarAngulo;
+    }
+    var velx = Math.cos(angulo)*10; // Se dispara con una velocidad entre 0 y 10
+    var vely = Math.sin(angulo)*10; // Se dispara con una velocidad entre 0 y 10
+
+    crearBala(id,nombre,x,y,velx,vely,ancho,alto);
+  }
+
+  crearEnemigoAleatorio = function(){
+    var id = Math.random(); // NO ME CONVENCE, SI SALE UN NÚMERO ALEATORIO QUE YA FUE INGRESADO, SE SOBREESCRIBIRÁ EL ENEMIGO
+    var nombre = id;
+    var x;
+    do{
+      x = Math.random() * ancho_lienzo; //Math.random retorna un número entre 0 y 1
+    }while( (x < jugador.x + jugador.ancho*2) && (x > jugador.x - jugador.ancho*2) ); // El enemigo no puede ser creado cerca del jugador
+    var y;
+    do{
+      y = Math.random() * ancho_lienzo;
+    }while( (y < jugador.y + jugador.alto*2) && (y > jugador.y - jugador.alto*2) );
+    var alto = 10 + Math.random() * 30; // Alto entre 10 y 40
+    var ancho = 10 + Math.random() * 30; // Ancho entre 10 y 40
+    var velx = 5 + Math.random() * 5; // Velocidad entre 5 y 10
+    var vely = 5 + Math.random() * 5; // Velocidad entre 5 y 10
+    var color; // Parte por defecto como un rectángulo blanco (invisible)
+    do{
+      color = getRandomColor();
+      // Se genera un color aleatorio. No puede repetirse el del jugador, el de las mejoras o el de las balas. Tampoco puede ser blanco (invisible)
+    }while(color == '#BF00FF' || color == '#000000' || color == '#FF8000' || color == '#FFFFFF' || color == color_jugador);
+
+    crearEnemigo(id,nombre,x,y,velx,vely,ancho,alto,color);
+  }
+
+  getRandomColor = function(){
+    var caracteres = '0123456789ABCDEF';
+    var color = '#';
+    for(var i = 0; i < 6; i++){
+      color += caracteres[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
+  // Cambia la posición de un objeto
+  actualizarEntidad = function(entidad){
+    actualizarPosicionEntidad(entidad);
+    dibujarEntidad(entidad);
+  }
+
+  // Actualiza los valores de x e y de una entidad
+  actualizarPosicionEntidad = function(entidad){
+    entidad.x += entidad.velx;
+    entidad.y += entidad.vely;
+
+    if(entidad.x > ancho_lienzo || entidad.x < 0){
+      entidad.velx *= -1;
+    }
+    if(entidad.y > alto_lienzo || entidad.y < 0){
+      entidad.vely *= -1;
+    }
+  }
+
+  actualizarPosicionJugador = function(){
+    if(jugador.pressingLeft){
+      jugador.x -= 10;
+    }
+    if(jugador.pressingRight){
+      jugador.x += 10;
+    }
+    if(jugador.pressingDown){
+      jugador.y += 10;
+    }
+    if(jugador.pressingUp){
+      jugador.y -= 10;
+    }
+
+    var mitad_ancho_jugador = jugador.ancho/2;
+    var mitad_alto_jugador = jugador.alto/2;
+
+    // Para que no se salga del lienzo
+    if(jugador.x < mitad_ancho_jugador){
+      jugador.x = mitad_ancho_jugador;
+    }
+    if(jugador.x > ancho_lienzo - mitad_ancho_jugador){
+      jugador.x = ancho_lienzo - mitad_ancho_jugador;
+    }
+
+    if(jugador.y < mitad_alto_jugador){
+      jugador.y = mitad_alto_jugador;
+    }
+    if(jugador.y > alto_lienzo - mitad_alto_jugador){
+      jugador.y = alto_lienzo - mitad_alto_jugador;
+    }
+  }
+
+  // Crea la entidad en el lienzo
+  dibujarEntidad = function(entidad){
+    ctx.save(); // Guarda la información del lienzo (color, fuente, etc.)
+    ctx.fillStyle = entidad.color; // Cambio el color por un momento para dibujar al jugador
+    var origen_x = entidad.x - entidad.ancho/2; // El origen quedaría en la esquina superior izquierda, por eso se "mueve" hacia la derecha hasta llegar al centro (la mitad de su ancho)
+    var origen_y = entidad.y - entidad.alto/2; // Lo mismo, se mueve el origen hacia abajo para llegar al centro (mitad del alto)
+    ctx.fillRect(origen_x,origen_y,entidad.ancho,entidad.alto); // Se dibuja un rectángulo de ancho x alto
+    ctx.restore(); // Restaura la información del lienzo que quedó guardada
+  }
+
+  startNewGame = function(){
+    jugador.salud = salud_jugador;
+    tiempoInicio = Date.now();
+    frameCount = 0;
+    score = 0;
+    listaEnemigos = {}; // Se vacía la lista de enemigos para que empiece de nuevo
+    listaMejoras = {};
+    listaBalas = {};
+    jugador.vel_disparo = 1;
+    for(var i = 0; i < enemigos_iniciales; i ++){
+      crearEnemigoAleatorio();
+    }
+  }
+
+  // Limpia la pantalla y reposiciona los objetos
+  actualizar = function(){
+    ctx.clearRect(0,0,ancho_lienzo,alto_lienzo); // Primero borramos todo el lienzo
+
+    frameCount++;
+    score++;
+    jugador.tiempo_entre_balas++;
+
+    if(frameCount % 75 == 0){ // Cada 3 segundos (porque anda a 25 FPS)
+      crearEnemigoAleatorio(); // Se agrega un nuevo enemigo
+    }
+    if(frameCount % 250 == 0){ // Cada 10 segundos (porque anda a 25 FPS)
+      crearMejoraAleatoria(); // Se agrega una mejora
+    }
+
+    for(var key1 in listaBalas){
+      var bala = listaBalas[key1];
+      actualizarEntidad(bala);
+      listaBalas[key1].tiempo_de_vida++;
+
+      if(listaBalas[key1].tiempo_de_vida > 50){ // Si dura más de 4 segundos
+        delete listaBalas[key1]; // La bala desaparece
+        continue; // No revisa si choca con algo, porque la bala ya no existe
+      }
+
+      for(key2 in listaEnemigos){
+        var enemy = listaEnemigos[key2];
+        if(areRectanglesColliding(bala,enemy)){
+          delete listaBalas[key1];
+          delete listaEnemigos[key2];
+          break;
+        }
+      }
+    }
+
+    for(var key in listaMejoras){
+      var mejora = listaMejoras[key];
+      actualizarEntidad(mejora);
+      if(areRectanglesColliding(jugador,mejora)){
+        if(mejora.tipo == 'puntos'){
+          score += 1000;
+        }
+        else if (mejora.tipo == 'bala'){
+          jugador.vel_disparo++; // Si recoje una mejora lila, aumenta su frecuencia de disparo
+        }
+        delete listaMejoras[key];
+      }
+    }
+
+    for (var key in listaEnemigos){ // Recorremos cada entidad enemiga
+      var enemy = listaEnemigos[key];
+      actualizarEntidad(enemy); // Movemos al enemigo
+      if(areRectanglesColliding(jugador,enemy)){ // Verifica si toca al jugador
+        jugador.salud -= 1;
+      }
+    }
+
+    if(jugador.salud <= 0){
+      var tiempoSobrevivido = Date.now() - tiempoInicio;
+      console.log('GAME OVER, sobreviviste por ' + tiempoSobrevivido/1000 + ' segundos.');
+      startNewGame();
+    }
+
+    actualizarPosicionJugador();
+    dibujarEntidad(jugador); // Dibujamos al jugador, que se moverá con el mouse
+    ctx.fillText(jugador.salud + 'HP',0,30);
+    ctx.fillText('Puntos: ' + score,0,60);
+    /*
+    ctx.fillText('X=' + jugador.x,0,60);
+    ctx.fillText('Y=' + jugador.y,0,90);
+    */
+  }
+
+  // Dirección del disparo
+  document.onmousemove = function(mouse){
+    var borde_izquierdo = document.getElementById('myCanvas').getBoundingClientRect().left;
+    var borde_superior = document.getElementById('myCanvas').getBoundingClientRect().top;
+    var mouse_x = mouse.clientX - borde_izquierdo;
+    var mouse_y = mouse.clientY - borde_superior;
+    // Con esto hacemos que el ángulo sea con respecto al jugador, y no con respecto al centro del lienzo
+    // Sin esto, puedo estar arriba del centro del lienzo, querer disparar abajo, pero igual disparará hacia arriba
+    mouse_x -= jugador.x;
+    mouse_y -= jugador.y;
+    jugador.anguloDisparo = Math.atan2(mouse_y,mouse_x); // Devuelve el ángulo en radianes
+  }
+
+  disparar = function(){
+    //console.log(jugador.tiempo_entre_balas);
+    if(jugador.tiempo_entre_balas > 25/jugador.vel_disparo){ // Empieza disparando cada segundo (porque vel_disparo=1), pero con cada mejora se hace más frecuente
+      crearBalaAleatoria(jugador); // Se dispara una bala
+      jugador.tiempo_entre_balas = 0;
+    }
+  }
+
+  document.onmousedown = function(){
+    if(event.button == 0){ // Sólo se activa esto si apreta el botón izquierdo del mouse
+      disparo_continuo = setInterval(disparar,1);
+    }
+  }
+
+  document.onmouseup = function(){
+    clearInterval(disparo_continuo);
+  }
+
+  document.onkeydown = function(event){
+    var tecla = event.keyCode;
+    if(tecla == 65){ // A
+      jugador.pressingLeft = true;
+    }else if(tecla == 68){ // D
+      jugador.pressingRight = true;
+    }else if(tecla == 83){ // S
+      jugador.pressingDown = true;
+    }else if(tecla == 87){ // W
+      jugador.pressingUp = true;
+    }
+  }
+
+  document.onkeyup = function(){
+    var tecla = event.keyCode;
+    if(tecla == 65){ // A
+      jugador.pressingLeft = false;
+    }else if(tecla == 68){ // D
+      jugador.pressingRight = false;
+    }else if(tecla == 83){ // S
+      jugador.pressingDown = false;
+    }else if(tecla == 87){ // W
+      jugador.pressingUp = false;
+    }
+  }
+
+  document.oncontextmenu = function(event){ // event es más común, pero es lo mismo que mouse
+    if(jugador.tiempo_entre_balas > 50){ // Si no dispara por 2 segundos
+      crearBalaAleatoria(jugador,0); // Derecha
+      crearBalaAleatoria(jugador,Math.PI/4); // Diagonal superior derecha
+      crearBalaAleatoria(jugador,Math.PI/2); // Arriba
+      crearBalaAleatoria(jugador,3*Math.PI/4); // Diagonal superior izquierda
+      crearBalaAleatoria(jugador,Math.PI); // Izquierda
+      crearBalaAleatoria(jugador,-3*Math.PI/4); // Diagonal inferior izquierda
+      crearBalaAleatoria(jugador,-Math.PI/2); // Abajo
+      crearBalaAleatoria(jugador,-Math.PI/4); // Diagonal inferior derecha
+      jugador.tiempo_entre_balas = 0;
+    }
+    event.preventDefault();
+  }
+
+  // MAIN
+
+  var canvas = document.getElementById('myCanvas');
+  var ctx = canvas.getContext('2d');
+  var ancho_lienzo = 500;
+  var alto_lienzo = 500;
+  var tiempoInicio = Date.now(); // Retorna el tiempo en milisegundos
+
+  var frameCount = 0;
+  var score = 0;
+
+  var color_jugador = '#00FF00';
+  var salud_jugador = 20;
+  var enemigos_iniciales = 3;
+  var disparo_continuo;
+
+  // Ajustes del texto
+  ctx.font = '30px Arial'; // Fuente
+  ctx.fillStyle = 'black'; // Color y forma
+  ctx.globalAlpha = 1; // Transparencia. 0=invisible, 1=visible
+
+  /*
+  ctx.fillText(texto,x,y); // Escribe un texto. ('texto',x,y)
+  ctx.fillRect(50,100,100,100); // Crea un rectángulo (inicioX,inicioY,ancho,alto)
+  ctx.clearRect(55,105,90,90); // Borra una zona rectangular (inicioX,inicioY,ancho,alto)
+  */
+
+  /// OBJETOS
+
+  // Jugador
+  var jugador = {
+    // Propiedades
+    x: ancho_lienzo/2,
+    y: alto_lienzo/2,
+    velx: 20,
+    vely: 10,
+    nombre: 'jugador',
+    salud: salud_jugador,
+    ancho: 20,
+    alto: 20,
+    color: color_jugador,
+    vel_disparo: 1,
+    tiempo_entre_balas: 51, // Puede disparar desde el principio
+    pressingLeft: false,
+    pressingRight: false,
+    pressingDown: false,
+    pressingUp: false,
+    anguloDisparo: 0
+
+    // Métodos
+    /*mover: function(){
+      this.x += this.velx;
+      this.y += this.vely;
+      ctx.fillText(this.texto, this.x, this.y);
+      if(this.x > ancho || this.x < 0){
+        this.velx *= -1;
+      }
+      if(this.y > alto || this.y < 0){
+        this.vely *= -1;
+      }
+    }*/
+  };
+
+  // Enemigos
+
+  // Se crea el arreglo que contiene los enemigos
+  var listaEnemigos = {};
+  var listaMejoras = {};
+  var listaBalas = {};
+
+  for(var i = 0; i < enemigos_iniciales; i++){
+    crearEnemigoAleatorio();
+  }
+
+  // Cada cierto tiempo se reposicionan los objetos
+  setInterval(actualizar,40); // 1.000/40 = 25 FPS
+
+  // Definiendo y usando una función dentro del setInterval
+  /*setInterval(function(){
+    mover(texto,ctx,x,y,velx,vely);
+    x += velx;
+    y += vely;
+  },
+  1000);*/
+
+</script>
