@@ -30,7 +30,7 @@
   }
 
   // Crea el objeto enemigo y lo agrega a la lista
-  crearEnemigo = function (id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2,color2){
+  crearEnemigo = function (id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2,color2,angulo_disparo2,vel_disparo2,tiempo_entre_balas2){
     var enemigo = {
       id: id2,
       nombre: nombre2,
@@ -40,7 +40,10 @@
       vely: vely2,
       ancho: ancho2,
       alto: alto2,
-      color: color2
+      color: color2,
+      angulo_disparo: angulo_disparo2,
+      vel_disparo: vel_disparo2,
+      tiempo_entre_balas: tiempo_entre_balas2
     };
     listaEnemigos[enemigo.id] = enemigo;
   }
@@ -99,16 +102,16 @@
     listaBalas[bala.id] = bala;
   }
 
-  crearBalaAleatoria = function(entidad,reemplazarAngulo){
+  crearBalaAleatoria = function(entidad,angulo_reemplazo){
     var id = Math.random(); // NO ME CONVENCE, SI SALE UN NÚMERO ALEATORIO QUE YA FUE INGRESADO, SE SOBREESCRIBIRÁ EL ENEMIGO
     var nombre = id;
     var x = entidad.x;
     var y = entidad.y;
     var alto = 5;
     var ancho = 5;
-    var angulo = entidad.anguloDisparo; // Se dispara en la dirección del mouse
-    if(reemplazarAngulo !== undefined){ // Si se especifica un nuevo ángulo, se usa ese
-      angulo = reemplazarAngulo;
+    var angulo = entidad.angulo_disparo; // Se dispara en la dirección del mouse
+    if(angulo_reemplazo !== undefined){ // Si se especifica un nuevo ángulo, se usa ese
+      angulo = angulo_reemplazo;
     }
     var velx = Math.cos(angulo)*10; // Se dispara con una velocidad entre 0 y 10
     var vely = Math.sin(angulo)*10; // Se dispara con una velocidad entre 0 y 10
@@ -136,8 +139,11 @@
       color = getRandomColor();
       // Se genera un color aleatorio. No puede repetirse el del jugador, el de las mejoras o el de las balas. Tampoco puede ser blanco (invisible)
     }while(color == '#BF00FF' || color == '#000000' || color == '#FF8000' || color == '#FFFFFF' || color == color_jugador);
+    var angulo_disparo = 0;
+    var vel_disparo = 1;
+    var tiempo_entre_balas = 0;
 
-    crearEnemigo(id,nombre,x,y,velx,vely,ancho,alto,color);
+    crearEnemigo(id,nombre,x,y,velx,vely,ancho,alto,color,angulo_disparo,vel_disparo,tiempo_entre_balas);
   }
 
   getRandomColor = function(){
@@ -308,27 +314,32 @@
     // Sin esto, puedo estar arriba del centro del lienzo, querer disparar abajo, pero igual disparará hacia arriba
     mouse_x -= jugador.x;
     mouse_y -= jugador.y;
-    jugador.anguloDisparo = Math.atan2(mouse_y,mouse_x); // Devuelve el ángulo en radianes
+    jugador.angulo_disparo = Math.atan2(mouse_y,mouse_x); // Devuelve el ángulo en radianes
   }
 
-  disparar = function(){
+  disparar = function(entidad){
     //console.log(jugador.tiempo_entre_balas);
-    if(jugador.tiempo_entre_balas > 25/jugador.vel_disparo){ // Empieza disparando cada segundo (porque vel_disparo=1), pero con cada mejora se hace más frecuente
-      crearBalaAleatoria(jugador); // Se dispara una bala
-      jugador.tiempo_entre_balas = 0;
+    if(entidad.tiempo_entre_balas > 25/entidad.vel_disparo){ // Empieza disparando cada segundo (porque vel_disparo=1), pero con cada mejora se hace más frecuente
+      crearBalaAleatoria(entidad); // Se dispara una bala
+      entidad.tiempo_entre_balas = 0;
     }
   }
 
+  // Presionar botón mouse
   document.onmousedown = function(){
     if(event.button == 0){ // Sólo se activa esto si apreta el botón izquierdo del mouse
-      disparo_continuo = setInterval(disparar,1);
+      disparo_continuo = setInterval(disparar,1,jugador);
     }
   }
 
+  // Soltar botón mouse
   document.onmouseup = function(){
-    clearInterval(disparo_continuo);
+    if(event.button == 0){
+      clearInterval(disparo_continuo);
+    }
   }
 
+  // Presionar una tecla
   document.onkeydown = function(event){
     var tecla = event.keyCode;
     if(tecla == 65){ // A
@@ -342,6 +353,7 @@
     }
   }
 
+  // Soltar una tecla
   document.onkeyup = function(){
     var tecla = event.keyCode;
     if(tecla == 65){ // A
@@ -355,8 +367,10 @@
     }
   }
 
+  // Hacer click derecho
   document.oncontextmenu = function(event){ // event es más común, pero es lo mismo que mouse
     if(jugador.tiempo_entre_balas > 50){ // Si no dispara por 2 segundos
+      /*
       crearBalaAleatoria(jugador,0); // Derecha
       crearBalaAleatoria(jugador,Math.PI/4); // Diagonal superior derecha
       crearBalaAleatoria(jugador,Math.PI/2); // Arriba
@@ -365,6 +379,10 @@
       crearBalaAleatoria(jugador,-3*Math.PI/4); // Diagonal inferior izquierda
       crearBalaAleatoria(jugador,-Math.PI/2); // Abajo
       crearBalaAleatoria(jugador,-Math.PI/4); // Diagonal inferior derecha
+      */
+      for(var angle = -3*Math.PI/4; angle <= Math.PI; angle += Math.PI/4 ){ // Dispara balas en 8 direcciones, desde -3*pi/4 hasta pi
+        crearBalaAleatoria(jugador,angle);
+      }
       jugador.tiempo_entre_balas = 0;
     }
     event.preventDefault();
@@ -417,7 +435,7 @@
     pressingRight: false,
     pressingDown: false,
     pressingUp: false,
-    anguloDisparo: 0
+    angulo_disparo: 0
 
     // Métodos
     /*mover: function(){
