@@ -115,16 +115,21 @@ Actor = function(tipo2,id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2,imagen2,vel_di
 crearEnemigoAleatorio = function(){
   var id = Math.random(); // NO ME CONVENCE, SI SALE UN NÚMERO ALEATORIO QUE YA FUE INGRESADO, SE SOBREESCRIBIRÁ EL ENEMIGO
   var nombre = id;
+
   var x;
-  do{ // REVISAR ESTO, SE ESTÁN GENERANDO ENEMIGOS FUERA DEL LIENZO
+  do{
     x = Math.random() * ancho_lienzo; //Math.random retorna un número entre 0 y 1
   }while( (x < jugador.x + jugador.ancho*2) && (x > jugador.x - jugador.ancho*2) ); // El enemigo no puede ser creado cerca del jugador
+
   var y;
   do{
-    y = Math.random() * ancho_lienzo;
+    y = Math.random() * alto_lienzo;
   }while( (y < jugador.y + jugador.alto*2) && (y > jugador.y - jugador.alto*2) );
-  var alto = 20 + Math.random() * 30; // Alto entre 20 y 50
-  var ancho = 20 + Math.random() * 30; // Ancho entre 20 y 50
+
+  //var alto = 20 + Math.random() * 30; // Alto entre 20 y 50
+  //var ancho = 20 + Math.random() * 30; // Ancho entre 20 y 50
+  var alto = 70;
+  var ancho = 50;
   var velx = 5 + Math.random() * 5; // Velocidad entre 5 y 10
   var vely = 5 + Math.random() * 5; // Velocidad entre 5 y 10
   var color; // Parte por defecto como un rectángulo blanco (invisible)
@@ -134,14 +139,23 @@ crearEnemigoAleatorio = function(){
     // Se genera un color aleatorio. No puede repetirse el del jugador, el de las mejoras o el de las balas. Tampoco puede ser blanco (invisible)
   }while(color == '#BF00FF' || color == '#000000' || color == '#FF8000' || color == '#FFFFFF' || color == color_jugador);
   */
-  var num_enemigo = Math.random();
   var imagen;
-  if(num_enemigo < 0.3){
-    imagen = Img.enemigo1;
-  }else if(num_enemigo > 0.6){
-    imagen = Img.enemigo3;
-  }else{
-    imagen = Img.enemigo2;
+  var num_enemigo = 1 + Math.random()*3; // Se genera un número aleatorio entre 1 y 4
+  num_enemigo = Math.round(num_enemigo); // Lo dejamos como número entero
+  // Dependiendo del número, se elige una imagen
+  switch (num_enemigo) {
+    case 1:
+      imagen = Img.enemigo1;
+      break;
+    case 2:
+      imagen = Img.enemigo2;
+      break;
+    case 3:
+      imagen = Img.enemigo3;
+      break;
+    default:
+      imagen = Img.enemigo4;
+      break;
   }
 
   var angulo_disparo = 0;
@@ -172,7 +186,7 @@ crearMejoraAleatoria = function(){
   var color;
   var imagen;
   var categoria;
-  if(Math.random() < 0.7){ // 70% de probabilidad de que aumente el puntaje
+  if(Math.random() < 0.8){ // 80% de probabilidad de que aumente el puntaje
     //color = '#FF8000'; // Las mejoras de puntaje son de color naranjo
     imagen = Img.mejora_puntos;
     categoria = 'puntos';
@@ -251,9 +265,14 @@ crearEntidad = function(tipo2,id2,nombre2,x2,y2,velx2,vely2,ancho2,alto2,imagen2
     ctx.save(); // Guarda la información del lienzo (color, fuente, etc.)
     var origen_x = self.x - self.ancho/2; // El origen quedaría en la esquina superior izquierda, por eso se "mueve" hacia la derecha hasta llegar al centro (la mitad de su ancho)
     var origen_y = self.y - self.alto/2; // Lo mismo, se mueve el origen hacia abajo para llegar al centro (mitad del alto)
-    ctx.drawImage(self.imagen,origen_x,origen_y,self.ancho,self.alto);
 
-    //ctx.drawImage(self.imagen,0,0,self.imagen.width,self.imagen.height,origen_x,origen_y,self.width,self.height);
+    ctx.drawImage(self.imagen,0,0,self.imagen.width,self.imagen.height,origen_x,origen_y,self.ancho,self.alto);
+    /* Significado:
+    ctx.drawImage(IMAGEN, DÓNDE EMPIEZA LA IMAGEN (ARCHIVO) EN X, DÓNDE EMPIEZA LA IMAGEN (ARCHIVO) EN Y,
+    HASTA DÓNDE LLEGA LA IMAGEN (ARCHIVO) EN X, HASTA DÓNDE LLEGA LA IMAGEN (ARCHIVO) EN Y,
+    ORIGEN EN X DE LA IMAGEN A DIBUJAR DENTRO DEL JUEGO, ORIGEN EN Y DE LA IMAGEN A DIBUJAR DENTRO DEL JUEGO,
+    ANCHO DE LA IMAGEN DENTRO DEL JUEGO, ALTO DE LA IMAGEN DENTRO DEL JUEGO);
+    */
 
     /*
     ctx.fillStyle = self.color; // Cambio el color por un momento para dibujar al jugador

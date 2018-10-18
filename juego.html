@@ -1,10 +1,13 @@
-<canvas id="myCanvas" width="700" height="500" style="border: 1px solid #000000"></canvas>
+<canvas id="myCanvas" width="1300" height="500" style="border: 1px solid #000000"></canvas>
 
 <!-- Importamos el archivo con las funciones dedicadas a entidades -->
 <script src="js/entidades.js"></script>
 
 <script>
 
+  /// FUNCIONES
+
+  // Retorna un color aleatorio
   getRandomColor = function(){
     var caracteres = '0123456789ABCDEF';
     var color = '#';
@@ -14,12 +17,17 @@
     return color;
   }
 
+  // Inicializa las variables para un juego nuevo
   startNewGame = function(){
     jugador.salud = salud_jugador;
     jugador.vel_disparo = 1;
 
     tiempoInicio = Date.now();
     frameCount = 0;
+    puntuacion_previa = score;
+    if(score > high_score){
+      high_score = score;
+    }
     score = 0;
     cantidad_mejoras = 0;
     jugador.imagen = Img.jugador;
@@ -33,9 +41,14 @@
     }
   }
 
+  dibujarMapa = function(){
+    ctx.drawImage(Img.mapa,0,0,Img.mapa.width,Img.mapa.height,0,0,ancho_lienzo,alto_lienzo);
+  }
+
   // Limpia la pantalla y reposiciona los objetos
   actualizar = function(){
     ctx.clearRect(0,0,ancho_lienzo,alto_lienzo); // Primero borramos todo el lienzo
+    dibujarMapa();
 
     frameCount++;
     score++;
@@ -60,7 +73,7 @@
       }
 
       // Recorre cada enemigo
-      /*
+      /**/
       for(key2 in listaEnemigos){
         var enemy = listaEnemigos[key2];
         if(bala.areRectanglesColliding(enemy)){ // Si este enemigo choca con la Bala del primer for
@@ -69,7 +82,7 @@
           break; // No necesita verificar colisiones con más balas, pues este enemigo ya no existe
         }
       }
-      */
+      /**/
     }
 
     for(var key in listaMejoras){
@@ -98,7 +111,7 @@
       var enemy = listaEnemigos[key];
 
       enemy.actualizar(); // Movemos al enemigo
-      enemy.disparar();
+      //enemy.disparar(); // El enemigo dispara si es que su contador lo permite
 
       if(jugador.areRectanglesColliding(enemy)){ // Verifica si toca al jugador
         jugador.salud -= 1;
@@ -114,9 +127,23 @@
 
     jugador.actualizar(); // Movemos al jugador
 
-    // Dibujamos la vida  los puntos
-    ctx.fillText(jugador.salud + 'HP',0,30);
+    // Dibujamos datos relevantes
+    ctx.save();
+    ctx.fillStyle = 'orange';
+    ctx.fillText('Salud: ' + jugador.salud,0,30);
+    ctx.fillStyle = 'red';
+    ctx.fillText('¡ACABA CON LOS SOLDADOS DE FREEZER!',650,30);
+    ctx.restore();
     ctx.fillText('Puntos: ' + score,0,60);
+    ctx.fillText('Última puntuación: ' + puntuacion_previa,250,30);
+    ctx.fillText('Mejor Puntuación: ' + high_score,250,60);
+    ctx.fillText('Controles:',0,390);
+    ctx.fillText('Teclas W, A, S, D: Moverse.',0,420);
+    ctx.fillText('Click izquierdo: Disparar.',0,450);
+    ctx.fillText('Click derecho: Disparar especial.',0,480);
+    ctx.fillText('Mejoras:',500,390);
+    ctx.fillText('Esfera del dragón: +1.000 puntos.',500,420);
+    ctx.fillText('Cabello super saijayin: Disparo más rápido.',500,450);
     /*
     ctx.fillText('X=' + jugador.x,0,60);
     ctx.fillText('Y=' + jugador.y,0,90);
@@ -201,6 +228,8 @@
 
   var frameCount = 0;
   var score = 0;
+  var puntuacion_previa = 0;
+  var high_score = -1;
 
   var salud_jugador = 20; // La defino acá para después resetearla en startNewGame
   var color_jugador = '#00FF00'; // Lo declaro aquí, para que en crearEnemigoAleatorio no salgan enemigos del mismo color que el jugador
@@ -220,7 +249,7 @@
   Img.jugador2.src = "img/vegeta2.jpg";
   // Enemigos
   Img.enemigo1 = new Image();
-  Img.enemigo1.src = "img/enemigo1.jpg";
+  Img.enemigo1.src = "img/enemigo1.png";
   Img.enemigo2 = new Image();
   Img.enemigo2.src = "img/enemigo2.png";
   Img.enemigo3 = new Image();
